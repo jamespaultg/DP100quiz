@@ -728,6 +728,18 @@
     border: 1px solid var(--border);
     color: var(--muted);
     background: var(--surface);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .topic-chip:hover {
+    border-color: var(--azure);
+    color: var(--text);
+  }
+  .topic-chip.active {
+    border-color: var(--teal);
+    background: rgba(0,178,148,0.15);
+    color: var(--teal);
   }
 
   /* Particles canvas */
@@ -754,16 +766,30 @@
   <h1 class="title-main">AZURE ML<br>QUEST</h1>
   <p class="title-sub">// TEST YOUR KNOWLEDGE · EARN POINTS · BEAT THE CLOCK</p>
 
-  <div class="topic-chips">
-    <span class="topic-chip">⚙️ Compute Targets</span>
-    <span class="topic-chip">🗄️ Storage</span>
-    <span class="topic-chip">🤖 AutoML</span>
-    <span class="topic-chip">📊 MLflow</span>
-    <span class="topic-chip">🔧 Hyperparameter Tuning</span>
-    <span class="topic-chip">🛡️ Responsible AI</span>
-    <span class="topic-chip">🚀 Deployment</span>
-    <span class="topic-chip">🌊 Pipelines</span>
+  <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;text-align:center;">
+    FILTER BY TOPIC <span style="color:var(--border)">(optional — leave blank for all)</span>
   </div>
+  <div class="topic-chips" id="topic-chips">
+    <span class="topic-chip" data-topic="Compute Targets" onclick="toggleTopic(this)">⚙️ Compute Targets</span>
+    <span class="topic-chip" data-topic="Azure Storage" onclick="toggleTopic(this)">🗄️ Storage</span>
+    <span class="topic-chip" data-topic="AutoML" onclick="toggleTopic(this)">🤖 AutoML</span>
+    <span class="topic-chip" data-topic="MLflow & Experiments" onclick="toggleTopic(this)">📊 MLflow</span>
+    <span class="topic-chip" data-topic="Hyperparameter Tuning" onclick="toggleTopic(this)">🔧 Hyperparameter Tuning</span>
+    <span class="topic-chip" data-topic="Language Models" onclick="toggleTopic(this)">🧠 Language Models</span>
+    <span class="topic-chip" data-topic="Deployment" onclick="toggleTopic(this)">🚀 Deployment</span>
+    <span class="topic-chip" data-topic="Pipelines" onclick="toggleTopic(this)">🌊 Pipelines</span>
+    <span class="topic-chip" data-topic="Workspace & SDK" onclick="toggleTopic(this)">💻 Workspace & SDK</span>
+    <span class="topic-chip" data-topic="Feature Store" onclick="toggleTopic(this)">🏪 Feature Store</span>
+    <span class="topic-chip" data-topic="Responsible AI" onclick="toggleTopic(this)">🛡️ Responsible AI</span>
+    <span class="topic-chip" data-topic="Online Endpoints" onclick="toggleTopic(this)">🔌 Online Endpoints</span>
+    <span class="topic-chip" data-topic="Batch Endpoints" onclick="toggleTopic(this)">📦 Batch Endpoints</span>
+    <span class="topic-chip" data-topic="Model Catalog" onclick="toggleTopic(this)">🗂️ Model Catalog</span>
+    <span class="topic-chip" data-topic="Azure AI Search" onclick="toggleTopic(this)">🔍 Azure AI Search</span>
+    <span class="topic-chip" data-topic="Fine-Tuning" onclick="toggleTopic(this)">🎯 Fine-Tuning</span>
+    <span class="topic-chip" data-topic="RAG & Optimization" onclick="toggleTopic(this)">⚡ RAG & Optimization</span>
+    <span class="topic-chip" data-topic="Training Jobs" onclick="toggleTopic(this)">🏋️ Training Jobs</span>
+  </div>
+  <div id="filter-summary" style="font-family:var(--font-mono);font-size:11px;color:var(--teal);margin-bottom:4px;min-height:18px;text-align:center;"></div>
 
   <div class="mode-grid">
     <div class="mode-card" style="--card-accent: #0078D4" onclick="selectMode('quick')">
@@ -787,8 +813,8 @@
     <div class="mode-card" style="--card-accent: #E74856" onclick="selectMode('exam')">
       <span class="mode-icon">🎯</span>
       <div class="mode-name">Exam Blitz</div>
-      <div class="mode-desc">Simulate the real exam. All 40 questions, strict exam conditions, full review at end.</div>
-      <div class="mode-count">40 questions · 45s each · No hints</div>
+      <div class="mode-desc">Simulate the real exam. 50 questions, strict exam conditions — full review at end.</div>
+      <div class="mode-count">50 questions · 45s each · No hints</div>
     </div>
   </div>
 
@@ -1120,10 +1146,10 @@ const ALL_QUESTIONS = [
   },
   {
     category: "Language Models",
-    q: "In Prompt Flow, you have two variants of a 'Summarise' node and want to find which performs best. What is the correct process?",
-    answers: ["Run both variants simultaneously and compare", "Set the best variant as default, then test the next node's variants", "Delete the worse variant immediately", "Use a SweepJob to compare variants"],
+    q: "In Prompt Flow, you have multiple nodes each with several variants. You want to optimise the full flow without testing every possible combination. What is the correct process?",
+    answers: ["Run all variant combinations simultaneously and compare", "Optimise sequentially — test one node's variants, set the best as default, then move to the next node", "Delete all but one variant per node before testing", "Use a SweepJob to search the variant space"],
     correct: 1,
-    explanation: "Prompt Flow variants are optimised <strong>sequentially</strong>: test Node 1 variants → set the best as default → then test Node 2 variants. This avoids combinatorial explosion."
+    explanation: "Prompt Flow variants are optimised <strong>sequentially node by node</strong>: test all variants of Node A → set the best as default → then test Node B variants. This avoids combinatorial explosion (e.g. 3 variants × 3 nodes = 27 combinations vs 9 sequential tests)."
   },
   {
     category: "Language Models",
@@ -1227,12 +1253,258 @@ const ALL_QUESTIONS = [
     ],
     correct: 1,
     explanation: "Batch endpoint invocations create <strong>Jobs</strong> that you monitor in the Jobs tab. Check job status (Running/Completed/Failed) and review driver logs and output for troubleshooting."
+  },
+
+  // RAI DASHBOARD
+  {
+    category: "Responsible AI",
+    q: "Which five components make up the Azure ML Responsible AI Dashboard?",
+    answers: ["Error Analysis, Explainability, Fairness, Data Analysis, Causal Analysis","Model Overview, Error Analysis, Explainability, AutoML, Causal Analysis","Fairness, Explainability, Drift Detection, Error Analysis, Security","Error Analysis, Fairness, Counterfactual What-If, Explainability, Pipeline Debug"],
+    correct: 0,
+    explanation: "The RAI Dashboard has five components: <strong>Error Analysis</strong> (where errors cluster), <strong>Model Interpretability/Explainability</strong> (SHAP feature importance), <strong>Fairness Assessment</strong> (group disparity), <strong>Data Analysis</strong> (dataset exploration), and <strong>Causal Analysis</strong> (EconML counterfactuals)."
+  },
+  {
+    category: "Responsible AI",
+    q: "How is the Responsible AI Dashboard constructed in Azure ML SDK v2?",
+    answers: ["A single rai_dashboard() function call with all settings","As a pipeline with a RAI constructor component plus individual insight components wired together","By running AutoML with responsible_ai=True","By registering the model with an mlflow.log_responsible_ai() call"],
+    correct: 1,
+    explanation: "The RAI Dashboard is built as an <strong>Azure ML pipeline</strong>: a RAI constructor component creates the base, then you add individual insight components (error_analysis, explanation, fairness, causal) as inputs to a final gather component. All are sourced from the Azure ML registry."
+  },
+  {
+    category: "Responsible AI",
+    q: "What algorithm does the RAI Dashboard Error Analysis component use to find cohorts with high error rates?",
+    answers: ["K-means clustering on residuals","A decision tree that splits data to find cohorts with highest error rate","Principal Component Analysis on incorrect predictions","SHAP value clustering"],
+    correct: 1,
+    explanation: "Error Analysis uses a <strong>decision tree</strong> that recursively splits your dataset to find subgroups with disproportionately high error rates. The tree visualisation lets you click branches to drill into specific cohort combinations (e.g. age &lt; 30 AND income &lt; 50k)."
+  },
+  {
+    category: "Responsible AI",
+    q: "Which open-source library powers the Fairness Assessment component of the Responsible AI Dashboard?",
+    answers: ["InterpretML","EconML","Fairlearn","SHAP"],
+    correct: 2,
+    explanation: "<strong>Fairlearn</strong> powers the Fairness Assessment component. It measures group fairness — disparity in model performance or selection rates across sensitive groups — and offers mitigation algorithms like Threshold Optimization. EconML powers Causal Analysis."
+  },
+  {
+    category: "Responsible AI",
+    q: "The RAI Dashboard for tabular data currently requires models to be in which format?",
+    answers: ["Any sklearn, PyTorch, or TensorFlow model in any format","MLflow models registered with a sklearn (scikit-learn) flavor only","ONNX models only","Azure AutoML models only"],
+    correct: 1,
+    explanation: "The RAI Dashboard requires <strong>MLflow-registered models with a scikit-learn flavor</strong>. The model must implement predict() or predict_proba() methods and be pickleable. TensorFlow/PyTorch models need a sklearn wrapper. This is a known current constraint."
+  },
+
+  // ONLINE ENDPOINTS & TRAFFIC SPLIT
+  {
+    category: "Online Endpoints",
+    q: "Traffic allocations across all deployments on a managed online endpoint must sum to what?",
+    answers: ["50","10","100","Any value — Azure normalises automatically"],
+    correct: 2,
+    explanation: "Traffic allocations <strong>must sum to 100</strong> (percent). If you have blue=90 and green=10, that is valid. Azure ML rejects endpoint configurations where traffic percentages do not total 100."
+  },
+  {
+    category: "Online Endpoints",
+    q: "In the Azure ML safe rollout pattern, what does 'traffic mirroring' mean for the green deployment?",
+    answers: ["Green receives 50% of live requests and returns results to clients","Green receives a copy of live traffic for validation but its responses are NOT returned to clients","Green is a read-only replica of blue with no separate deployment","Green automatically replaces blue when traffic reaches 50%"],
+    correct: 1,
+    explanation: "<strong>Traffic mirroring</strong> sends a copy of live requests to green, but clients only receive responses from blue. Green metrics and logs are recorded for validation. This lets you stress-test the new deployment with real traffic at zero risk to end users."
+  },
+  {
+    category: "Online Endpoints",
+    q: "How do you route a test request to the 'green' deployment without changing the traffic split?",
+    answers: ["x-deployment-target: green","azureml-model-deployment: green","Authorization: Deployment green","x-ms-routing-name: green"],
+    correct: 1,
+    explanation: "The <strong>azureml-model-deployment</strong> HTTP header lets you route a specific request to a named deployment, bypassing the traffic split. This is how you test green in isolation before shifting any live traffic."
+  },
+  {
+    category: "Online Endpoints",
+    q: "What two authentication modes are supported for managed online endpoints?",
+    answers: ["username/password and OAuth2","key (static API key) and aml_token (Azure AD bearer token)","Managed Identity and SAS token","API key and client certificate"],
+    correct: 1,
+    explanation: "Managed online endpoints support <strong>key</strong> (static API key) and <strong>aml_token</strong> (Azure AD Bearer token). Key is simpler; aml_token is more secure and time-limited. Managed Identity is for Azure services calling the endpoint, not a standalone auth mode."
+  },
+  {
+    category: "Online Endpoints",
+    q: "What does the instance_count parameter control in a managed online endpoint deployment?",
+    answers: ["The number of models loaded per VM","The number of VM instances provisioned to serve requests for that deployment","The number of concurrent requests per endpoint","The number of replicas of the endpoint DNS"],
+    correct: 1,
+    explanation: "<strong>instance_count</strong> sets the number of VM instances Azure provisions for the deployment. More instances = more throughput and redundancy. Azure ML also supports autoscaling via Azure Monitor to adjust instance_count dynamically based on request load."
+  },
+
+  // BATCH ENDPOINTS
+  {
+    category: "Batch Endpoints",
+    q: "What must the run(mini_batch) function return in a batch deployment scoring script?",
+    answers: ["A single prediction value","A JSON object with all predictions","A list or Pandas DataFrame of results for the mini-batch","Nothing — results are written to stdout"],
+    correct: 2,
+    explanation: "The run() function must return a <strong>list or Pandas DataFrame</strong> of results. Azure ML collects these from all mini-batches and concatenates them into the final output file stored in the output location."
+  },
+  {
+    category: "Batch Endpoints",
+    q: "Which batch deployment parameter controls how many files are passed to each run() call?",
+    answers: ["max_concurrency_per_instance","mini_batch_size","instance_count","retry_settings.max_retries"],
+    correct: 1,
+    explanation: "<strong>mini_batch_size</strong> controls how many files (or rows for tabular data) are passed to each run() call. Tune this together with max_concurrency_per_instance to balance memory usage and parallelism on each compute instance."
+  },
+  {
+    category: "Batch Endpoints",
+    q: "MLflow models deployed to a batch endpoint have a key advantage over custom models. What is it?",
+    answers: ["They run faster due to optimized runtime","They do not require a scoring script — Azure ML auto-generates the scoring logic","They support traffic splitting like online endpoints","They can process real-time requests as well as batch"],
+    correct: 1,
+    explanation: "MLflow models support <strong>no-code deployment</strong> to batch endpoints — Azure ML auto-generates the scoring script based on the MLmodel file's flavor and signature. This is the same benefit as MLflow models in online endpoints."
+  },
+
+  // MODEL CATALOG & BENCHMARKS
+  {
+    category: "Model Catalog",
+    q: "What is the key difference between 'serverless API' and 'managed compute' deployment in the Azure AI Foundry model catalog?",
+    answers: ["Serverless API is only for Microsoft models; managed compute is for open-source models","Serverless API is pay-per-token with no infrastructure to manage; managed compute deploys to a VM you provision","Serverless API supports fine-tuning; managed compute does not","Managed compute is always cheaper for high-volume workloads"],
+    correct: 1,
+    explanation: "<strong>Serverless API</strong> = Model-as-a-Service, pay-per-token, no VM management — best for most customers. <strong>Managed compute</strong> = deploy on your own Azure VM quota, full control, supports more models, but you manage quota and infrastructure yourself."
+  },
+  {
+    category: "Model Catalog",
+    q: "Which benchmark in the model catalog specifically evaluates code generation capability?",
+    answers: ["MMLU","TruthfulQA","HumanEval","HellaSwag"],
+    correct: 2,
+    explanation: "<strong>HumanEval</strong> measures code generation: the model must write Python functions that pass unit tests. MMLU tests broad language understanding. TruthfulQA tests factual accuracy. HellaSwag tests commonsense reasoning."
+  },
+  {
+    category: "Model Catalog",
+    q: "When should you choose fine-tuning over RAG according to Microsoft guidance?",
+    answers: ["When your knowledge base updates frequently","When you need to change the model's style, tone, or domain-specific behaviour consistently","When your context window is too small for the documents","When you need to reduce inference cost"],
+    correct: 1,
+    explanation: "Fine-tuning is best for changing <strong>how the model behaves</strong> — style, tone, format, vocabulary. RAG is better for grounding responses in knowledge that changes over time. Microsoft docs recommend: try RAG first, only fine-tune if RAG does not meet quality needs."
+  },
+
+  // AZURE AI SEARCH
+  {
+    category: "Azure AI Search",
+    q: "What are the four core objects in an Azure AI Search AI enrichment pipeline?",
+    answers: ["Index, Query, Vector Store, Embedding","Data Source, Skillset, Index, Indexer","Connector, Pipeline, Transformer, Output","Index, Ranker, Chunker, Embedder"],
+    correct: 1,
+    explanation: "The four core objects: <strong>Data Source</strong> (where content comes from), <strong>Skillset</strong> (AI enrichment pipeline), <strong>Index</strong> (searchable destination), and <strong>Indexer</strong> (orchestrator that connects the others and drives execution)."
+  },
+  {
+    category: "Azure AI Search",
+    q: "What does the Text Split skill do in an Azure AI Search skillset?",
+    answers: ["Translates text into multiple languages","Removes stop words from text","Splits large documents into smaller pages or sentences for chunking before embedding","Converts text into a structured table format"],
+    correct: 2,
+    explanation: "The <strong>Text Split skill</strong> breaks large documents into smaller chunks (by page or sentence count). This is essential before generating embeddings since embedding models have token limits. It is a core skill in every RAG indexing pipeline."
+  },
+  {
+    category: "Azure AI Search",
+    q: "In Azure AI Search hybrid search, which algorithm merges keyword and vector search results?",
+    answers: ["Weighted average scoring","Reciprocal Rank Fusion (RRF)","BM25 re-ranking","Cross-encoder semantic re-ranking"],
+    correct: 1,
+    explanation: "<strong>Reciprocal Rank Fusion (RRF)</strong> merges results from keyword and vector search by combining their rank positions. It is parameter-free and robust — a document ranked highly in both searches gets a higher combined score."
+  },
+  {
+    category: "Azure AI Search",
+    q: "In an Azure AI Search indexer, what is the purpose of 'output field mappings'?",
+    answers: ["They map fields from the data source to the index before enrichment","They route enriched content (skill outputs from the enrichment tree) into index fields","They define which fields are returned in search results","They configure the vector search algorithm for each field"],
+    correct: 1,
+    explanation: "<strong>Output field mappings</strong> transfer skill outputs from the internal enrichment tree into index fields. Regular field mappings handle pre-enrichment source-to-index mapping. Output field mappings are required whenever a skillset is used."
+  },
+  {
+    category: "Azure AI Search",
+    q: "What Azure AI Search feature automatically handles chunking AND vectorization during indexing without a separate pipeline?",
+    answers: ["Semantic ranker","Knowledge store","Integrated vectorization","Agentic retrieval"],
+    correct: 2,
+    explanation: "<strong>Integrated vectorization</strong> combines Text Split and embedding skills in the indexer pipeline, converting raw documents into chunks and vectors automatically. It also handles query-time vectorization — no separate embedding pipeline needed."
+  },
+
+  // FINE-TUNING
+  {
+    category: "Fine-Tuning",
+    q: "Microsoft recommends starting fine-tuning with how many high-quality examples for initial testing?",
+    answers: ["5-10 examples","50-100 examples","1,000+ examples","10,000+ examples"],
+    correct: 1,
+    explanation: "Microsoft recommends starting with <strong>50-100 high-quality examples</strong> for initial testing, scaling to 500+ for production models. Quality matters more than quantity — carefully curated examples outperform large noisy datasets."
+  },
+  {
+    category: "Fine-Tuning",
+    q: "What is the primary fine-tuning technique Microsoft recommends as a starting point?",
+    answers: ["Reinforcement Fine-Tuning (RFT)","Direct Preference Optimization (DPO)","Supervised Fine-Tuning (SFT)","LoRA only"],
+    correct: 2,
+    explanation: "<strong>Supervised Fine-Tuning (SFT)</strong> is Microsoft's recommended starting technique — train on input-output pairs. Microsoft advises: begin with SFT unless you have specific requirements for reasoning models (RFT) or preference alignment (DPO)."
+  },
+  {
+    category: "Fine-Tuning",
+    q: "What happens to a fine-tuned Azure OpenAI model deployment if it is inactive for more than 15 days?",
+    answers: ["Nothing — deployments persist indefinitely","The model weights are deleted permanently","The deployment is automatically deleted but the fine-tuned model asset is kept","The deployment is paused and you are notified by email"],
+    correct: 2,
+    explanation: "Azure automatically <strong>deletes inactive fine-tuned model deployments</strong> after 15 days of no API calls — but the underlying fine-tuned model asset remains. You can redeploy it at any time. This prevents unnecessary hourly hosting charges."
+  },
+
+  // RAG & OPTIMIZATION
+  {
+    category: "RAG & Optimization",
+    q: "What is the recommended search strategy in Azure AI Search for RAG to maximize both recall and precision?",
+    answers: ["Pure vector search only","Pure BM25 keyword search only","Hybrid search (keyword + vector) combined with semantic ranking","Fuzzy full-text search with scoring profiles"],
+    correct: 2,
+    explanation: "Microsoft's official RAG guidance recommends <strong>hybrid search + semantic ranking</strong>: hybrid (BM25 + vector) uses RRF for maximum recall, then semantic ranking re-ranks the top 50 results for precision. This combination consistently outperforms either approach alone."
+  },
+  {
+    category: "RAG & Optimization",
+    q: "What is 'agentic retrieval' in Azure AI Search (preview) and how does it differ from classic RAG?",
+    answers: ["It uses agents to automatically fine-tune the index","It uses an LLM to plan and decompose complex queries, retrieving from multiple sources intelligently","It allows the search index to self-learn from user feedback","It replaces vector search with agent-based keyword extraction"],
+    correct: 1,
+    explanation: "<strong>Agentic retrieval</strong> integrates an LLM into the query pipeline itself — the LLM plans the query, decomposes complex questions into sub-queries, and retrieves from multiple knowledge sources. Classic RAG sends the query directly; agentic retrieval is smarter but more complex."
+  },
+
+  // PIPELINES ADVANCED
+  {
+    category: "Pipelines",
+    q: "In Azure ML pipeline YAML, what syntax is used for input/output placeholders in the command field?",
+    answers: ["{{inputs.data}}","${{inputs.data}}","@inputs.data","%{inputs.data}"],
+    correct: 1,
+    explanation: "Azure ML SDK v2 pipeline YAML uses the <strong>${{inputs.name}}</strong> syntax for referencing inputs and outputs. For example: <code>command: python train.py --data ${{inputs.training_data}} --output ${{outputs.model}}</code>"
+  },
+
+  // TRAINING JOBS
+  {
+    category: "Training Jobs",
+    q: "Your command job fails with 'CUDA out of memory'. What is the correct first remediation?",
+    answers: ["Increase instance_count of the compute cluster","Switch to a GPU VM with more VRAM or reduce the batch size in your training script","Add more workers to the dataloader","Enable distributed training across CPUs"],
+    correct: 1,
+    explanation: "CUDA OOM means the GPU VRAM is exhausted. Fix by <strong>switching to a larger GPU SKU</strong> (e.g. Standard_NC24s_v3) OR <strong>reducing batch size</strong> in your script. Increasing instance_count adds more VMs but does not solve a single-GPU memory issue."
+  },
+  {
+    category: "Training Jobs",
+    q: "Which environment variable is automatically set by Azure ML so your training script knows where to save model outputs?",
+    answers: ["AZUREML_MODEL_DIR","AZUREML_OUTPUT_PATH","AZURE_ML_ARTIFACTS","MODEL_OUTPUT_DIR"],
+    correct: 0,
+    explanation: "<strong>AZUREML_MODEL_DIR</strong> is automatically set by Azure ML to point to the output directory. Files saved here are automatically uploaded to the run's outputs and can be registered as a model asset. Using this avoids hardcoding paths."
   }
 ];
 
 // ══════════════════════════════════════════════════════════
 // GAME STATE
 // ══════════════════════════════════════════════════════════
+let selectedTopics = new Set();
+
+function toggleTopic(el) {
+  const topic = el.dataset.topic;
+  if (selectedTopics.has(topic)) {
+    selectedTopics.delete(topic);
+    el.classList.remove('active');
+  } else {
+    selectedTopics.add(topic);
+    el.classList.add('active');
+  }
+  updateFilterSummary();
+}
+
+function updateFilterSummary() {
+  const el = document.getElementById('filter-summary');
+  if (!el) return;
+  if (selectedTopics.size === 0) {
+    el.textContent = '';
+  } else {
+    const matching = ALL_QUESTIONS.filter(q => selectedTopics.has(q.category)).length;
+    el.textContent = `✓ ${selectedTopics.size} topic${selectedTopics.size > 1 ? 's' : ''} selected · ${matching} questions available`;
+  }
+}
+
 let state = {
   mode: 'classic',
   playerName: 'Player',
@@ -1256,7 +1528,7 @@ const MODE_CONFIG = {
   quick:     { count: 10, time: 15, base: 100, lightning: false, hints: true },
   classic:   { count: 25, time: 30, base: 200, lightning: false, hints: true },
   lightning: { count: 999, time: 20, base: 150, lightning: true, hints: false },
-  exam:      { count: 40, time: 45, base: 100, lightning: false, hints: false }
+  exam:      { count: 50, time: 45, base: 100, lightning: false, hints: false }
 };
 
 // ══════════════════════════════════════════════════════════
@@ -1278,8 +1550,12 @@ function startGame() {
   state.playerName = name;
   const cfg = MODE_CONFIG[state.mode];
 
-  // Shuffle and pick questions
-  const shuffled = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5);
+  // Shuffle and pick questions (apply topic filter if set)
+  const pool = selectedTopics.size > 0
+    ? ALL_QUESTIONS.filter(q => selectedTopics.has(q.category))
+    : ALL_QUESTIONS;
+  if (pool.length === 0) { alert('No questions match the selected topics. Please select different topics.'); return; }
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
   state.questions = shuffled.slice(0, Math.min(cfg.count, shuffled.length));
 
   state.current = 0;
