@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure ML Quest — DP-100 Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azure: #0078D4;
+    --azure-light: #00A4EF;
+    --teal: #00B294;
+    --gold: #FFB900;
+    --red: #E74856;
+    --green: #10893E;
+    --bg: #060E1A;
+    --surface: #0D1B2E;
+    --surface2: #112240;
+    --border: #1E3A5F;
+    --text: #E8F4FF;
+    --muted: #5A7A9A;
+    --font-display: 'Orbitron', monospace;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-body: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,120,212,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,120,212,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .scanline {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ══ SCREENS ══ */
+  .screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+  /* ══ TITLE SCREEN ══ */
+  #screen-title {
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .title-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--azure-light);
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border: 1px solid var(--azure);
+    border-radius: 2px;
+    margin-bottom: 24px;
+    animation: pulse-border 2s infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: var(--azure); box-shadow: 0 0 0 rgba(0,120,212,0); }
+    50% { border-color: var(--azure-light); box-shadow: 0 0 16px rgba(0,164,239,0.3); }
+  }
+
+  .title-main {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 6vw, 72px);
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff 0%, var(--azure-light) 50%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+  }
+
+  .title-sub {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-bottom: 48px;
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    max-width: 860px;
+    width: 100%;
+    margin-bottom: 40px;
+  }
+
+  .mode-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mode-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--azure));
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+
+  .mode-card:hover::before { transform: scaleX(1); }
+  .mode-card:hover {
+    border-color: var(--card-accent, var(--azure));
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  .mode-card .mode-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+  .mode-card .mode-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--card-accent, var(--azure));
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .mode-card .mode-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .mode-card .mode-count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--border);
+    margin-top: 10px;
+  }
+
+  .leaderboard-preview {
+    max-width: 860px;
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+  }
+
+  .leaderboard-preview h3 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  #top-scores-list { list-style: none; }
+  #top-scores-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  #top-scores-list li:last-child { border-bottom: none; }
+  .rank-badge {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    width: 24px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .rank-badge.gold { color: var(--gold); }
+  .rank-badge.silver { color: #AAB8C2; }
+  .rank-badge.bronze { color: #C96A2A; }
+
+  /* ══ NAME INPUT SCREEN ══ */
+  #screen-name {
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .name-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 40px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .name-card h2 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--azure-light);
+    margin-bottom: 8px;
+  }
+
+  .name-card p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  input[type="text"]:focus { border-color: var(--azure); }
+
+  /* ══ BUTTONS ══ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn-primary {
+    background: var(--azure);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--azure-light); transform: translateY(-1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+  .btn-large { padding: 16px 40px; font-size: 15px; }
+
+  /* ══ GAME SCREEN ══ */
+  #screen-game {
+    padding: 20px;
+    align-items: stretch;
+    justify-content: flex-start;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .game-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .player-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--azure-light);
+  }
+
+  .score-display {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .score-display span { font-size: 11px; color: var(--muted); display: block; font-family: var(--font-mono); }
+
+  .timer-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
+  }
+
+  .timer-svg { transform: rotate(-90deg); }
+  .timer-track { fill: none; stroke: var(--border); stroke-width: 4; }
+  .timer-fill {
+    fill: none;
+    stroke: var(--azure);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 163;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke 0.3s;
+  }
+
+  .timer-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--azure), var(--teal));
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+
+  /* Category badge */
+  .q-category {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+
+  .q-number {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .q-text {
+    font-size: clamp(16px, 2.5vw, 22px);
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 28px;
+    color: var(--text);
+  }
+
+  /* Code block in question */
+  .q-text code, .code-block {
+    display: block;
+    background: #060E1A;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--azure);
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: #9CDCFE;
+    margin: 12px 0;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .answers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 600px) { .answers-grid { grid-template-columns: 1fr; } }
+
+  .answer-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .answer-btn:hover:not(:disabled) {
+    border-color: var(--azure);
+    background: var(--surface2);
+    transform: translateX(3px);
+  }
+
+  .answer-key {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    flex-shrink: 0;
+    width: 20px;
+    margin-top: 1px;
+  }
+
+  .answer-btn.correct {
+    border-color: var(--green);
+    background: rgba(16, 137, 62, 0.15);
+    animation: correct-flash 0.4s ease;
+  }
+
+  .answer-btn.wrong {
+    border-color: var(--red);
+    background: rgba(231, 72, 86, 0.15);
+    animation: wrong-shake 0.4s ease;
+  }
+
+  .answer-btn.reveal-correct {
+    border-color: var(--green);
+    background: rgba(16, 137, 62, 0.08);
+  }
+
+  @keyframes correct-flash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes wrong-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .answer-btn:disabled { cursor: default; opacity: 0.7; }
+
+  /* Explanation panel */
+  .explanation-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    border-radius: 4px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: #A8D8EA;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .explanation-panel.visible { display: block; animation: slide-in 0.3s ease; }
+
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .explanation-panel strong { color: var(--teal); }
+
+  /* Streak indicator */
+  .streak-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .streak-flames {
+    display: flex;
+    gap: 3px;
+  }
+
+  .flame {
+    font-size: 16px;
+    opacity: 0.2;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .flame.lit { opacity: 1; transform: scale(1.2); }
+
+  /* ══ RESULTS SCREEN ══ */
+  #screen-results {
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .results-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 40px;
+    max-width: 640px;
+    width: 100%;
+  }
+
+  .results-score-big {
+    font-family: var(--font-display);
+    font-size: 72px;
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .results-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .results-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .stat-box .stat-val {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .stat-box .stat-lbl {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .grade-banner {
+    padding: 14px 20px;
+    border-radius: 6px;
+    margin-bottom: 24px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .grade-A { background: rgba(16,137,62,0.2); border: 1px solid var(--green); color: #4EC96A; }
+  .grade-B { background: rgba(0,178,148,0.15); border: 1px solid var(--teal); color: var(--teal); }
+  .grade-C { background: rgba(255,185,0,0.15); border: 1px solid var(--gold); color: var(--gold); }
+  .grade-D { background: rgba(231,72,86,0.15); border: 1px solid var(--red); color: #FF8A8A; }
+
+  .missed-section {
+    text-align: left;
+    margin-bottom: 24px;
+  }
+
+  .missed-section h3 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .missed-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--red);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .missed-item strong { color: var(--text); display: block; margin-bottom: 4px; }
+
+  .results-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ══ FLOATING POINTS ══ */
+  .floating-pts {
+    position: fixed;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 100;
+    animation: float-up 1.2s ease-out forwards;
+  }
+
+  @keyframes float-up {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.3); }
+  }
+
+  /* ══ TOAST ══ */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 24px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    z-index: 200;
+    animation: toast-in 0.3s ease;
+    white-space: nowrap;
+  }
+
+  @keyframes toast-in {
+    from { opacity: 0; top: 0; }
+    to { opacity: 1; top: 20px; }
+  }
+
+  /* ══ LIGHTNING ROUND banner ══ */
+  .lightning-banner {
+    background: linear-gradient(135deg, #3D1A00, #6B2D00);
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  .lightning-banner.visible { display: block; animation: pulse-gold 1s infinite; }
+
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 rgba(255,185,0,0); }
+    50% { box-shadow: 0 0 20px rgba(255,185,0,0.3); }
+  }
+
+  /* Correct answer key highlight */
+  .answer-btn.correct .answer-key,
+  .answer-btn.reveal-correct .answer-key { color: var(--green); }
+  .answer-btn.wrong .answer-key { color: var(--red); }
+
+  /* ══ CATEGORY PILLS for mode selector ══ */
+  .topic-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 32px;
+    max-width: 860px;
+  }
+
+  .topic-chip {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  /* Particles canvas */
+  #particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+  /* ══ COMBO multiplier ══ */
+  .combo-display {
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+  .combo-display.active { color: var(--gold); text-shadow: 0 0 12px rgba(255,185,0,0.5); }
+
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<div class="scanline"></div>
+
+<!-- ══ TITLE SCREEN ══ -->
+<div id="screen-title" class="screen active">
+  <div class="title-badge">DP-100 · Azure Data Scientist</div>
+  <h1 class="title-main">AZURE ML<br>QUEST</h1>
+  <p class="title-sub">// TEST YOUR KNOWLEDGE · EARN POINTS · BEAT THE CLOCK</p>
+
+  <div class="topic-chips">
+    <span class="topic-chip">⚙️ Compute Targets</span>
+    <span class="topic-chip">🗄️ Storage</span>
+    <span class="topic-chip">🤖 AutoML</span>
+    <span class="topic-chip">📊 MLflow</span>
+    <span class="topic-chip">🔧 Hyperparameter Tuning</span>
+    <span class="topic-chip">🛡️ Responsible AI</span>
+    <span class="topic-chip">🚀 Deployment</span>
+    <span class="topic-chip">🌊 Pipelines</span>
+  </div>
+
+  <div class="mode-grid">
+    <div class="mode-card" style="--card-accent: #0078D4" onclick="selectMode('quick')">
+      <span class="mode-icon">⚡</span>
+      <div class="mode-name">Quick Fire</div>
+      <div class="mode-desc">10 questions, 15 seconds each. Fast-paced warm-up before the exam.</div>
+      <div class="mode-count">10 questions · 15s each · 100pts base</div>
+    </div>
+    <div class="mode-card" style="--card-accent: #00B294" onclick="selectMode('classic')">
+      <span class="mode-icon">🧠</span>
+      <div class="mode-name">Classic Challenge</div>
+      <div class="mode-desc">25 questions covering all topics. Includes code snippets and scenario-based questions.</div>
+      <div class="mode-count">25 questions · 30s each · 200pts base</div>
+    </div>
+    <div class="mode-card" style="--card-accent: #FFB900" onclick="selectMode('lightning')">
+      <span class="mode-icon">🌩️</span>
+      <div class="mode-name">Lightning Round</div>
+      <div class="mode-desc">Survive as long as you can. Timer gets shorter each question. One wrong = game over.</div>
+      <div class="mode-count">Endless · 20s → 8s · Survival mode</div>
+    </div>
+    <div class="mode-card" style="--card-accent: #E74856" onclick="selectMode('exam')">
+      <span class="mode-icon">🎯</span>
+      <div class="mode-name">Exam Blitz</div>
+      <div class="mode-desc">Simulate the real exam. All 40 questions, strict exam conditions, full review at end.</div>
+      <div class="mode-count">40 questions · 45s each · No hints</div>
+    </div>
+  </div>
+
+  <div class="leaderboard-preview">
+    <h3>🏆 &nbsp;High Scores</h3>
+    <ul id="top-scores-list">
+      <li><span class="rank-badge gold">1</span> <span id="hs-1-name">---</span> <span style="margin-left:auto;font-family:var(--font-mono);color:var(--gold)" id="hs-1-score">-</span></li>
+      <li><span class="rank-badge silver">2</span> <span id="hs-2-name">---</span> <span style="margin-left:auto;font-family:var(--font-mono);color:#AAB8C2" id="hs-2-score">-</span></li>
+      <li><span class="rank-badge bronze">3</span> <span id="hs-3-name">---</span> <span style="margin-left:auto;font-family:var(--font-mono);color:#C96A2A" id="hs-3-score">-</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══ NAME SCREEN ══ -->
+<div id="screen-name" class="screen">
+  <div class="name-card">
+    <h2>ENTER YOUR NAME</h2>
+    <p>Your name will appear on the leaderboard.</p>
+    <input type="text" id="player-name-input" placeholder="e.g. Data Ninja" maxlength="20">
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn btn-ghost" onclick="showScreen('title')">← Back</button>
+      <button class="btn btn-primary btn-large" onclick="startGame()">LAUNCH QUEST →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME SCREEN ══ -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <div class="game-meta">
+      <div class="player-name" id="player-display">Player</div>
+      <div class="combo-display" id="combo-display">×1</div>
+    </div>
+    <div class="timer-wrap">
+      <svg class="timer-svg" width="60" height="60" viewBox="0 0 60 60">
+        <circle class="timer-track" cx="30" cy="30" r="26"/>
+        <circle class="timer-fill" id="timer-circle" cx="30" cy="30" r="26"/>
+      </svg>
+      <div class="timer-text" id="timer-text">30</div>
+    </div>
+    <div class="score-display">
+      <span>SCORE</span>
+      <span id="score-val">0</span>
+    </div>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+  </div>
+
+  <div class="lightning-banner" id="lightning-banner">⚡ LIGHTNING ROUND — ONE WRONG ANSWER ENDS IT ALL ⚡</div>
+
+  <div class="streak-bar">
+    <span>Streak:</span>
+    <div class="streak-flames">
+      <span class="flame" id="flame-1">🔥</span>
+      <span class="flame" id="flame-2">🔥</span>
+      <span class="flame" id="flame-3">🔥</span>
+      <span class="flame" id="flame-4">🔥</span>
+      <span class="flame" id="flame-5">🔥</span>
+    </div>
+    <span id="streak-text" style="font-size:11px;color:var(--muted)"></span>
+  </div>
+
+  <div class="q-category" id="q-category">Compute</div>
+  <div class="q-number" id="q-number">Question 1 of 10</div>
+  <div class="q-text" id="q-text"></div>
+
+  <div class="answers-grid" id="answers-grid"></div>
+
+  <div class="explanation-panel" id="explanation-panel"></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border)">
+    <button class="btn btn-ghost" onclick="quitGame()">✕ Quit</button>
+    <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" style="display:none">NEXT →</button>
+  </div>
+</div>
+
+<!-- ══ RESULTS SCREEN ══ -->
+<div id="screen-results" class="screen">
+  <div class="results-card">
+    <div id="results-emoji" style="font-size:48px;margin-bottom:16px">🎯</div>
+    <div class="results-score-big" id="final-score">0</div>
+    <div class="results-label">POINTS EARNED</div>
+
+    <div class="results-stats">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-correct" style="color:var(--green)">0</div>
+        <div class="stat-lbl">Correct</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-wrong" style="color:var(--red)">0</div>
+        <div class="stat-lbl">Wrong</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-streak" style="color:var(--gold)">0</div>
+        <div class="stat-lbl">Best Streak</div>
+      </div>
+    </div>
+
+    <div id="grade-banner" class="grade-banner"></div>
+
+    <div class="missed-section" id="missed-section" style="display:none">
+      <h3>📚 Review These Topics</h3>
+      <div id="missed-list"></div>
+    </div>
+
+    <div class="results-actions">
+      <button class="btn btn-ghost" onclick="showScreen('title')">🏠 Home</button>
+      <button class="btn btn-primary" id="play-again-btn" onclick="playAgain()">🔄 Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// QUESTION BANK — 40 questions covering all DP-100 Day 1-3 topics
+// ══════════════════════════════════════════════════════════
+const ALL_QUESTIONS = [
+  // ── COMPUTE TARGETS ──
+  {
+    category: "Compute Targets",
+    q: "You're writing code and running notebooks interactively in Azure ML Studio. Which compute target should you use?",
+    answers: ["Compute Cluster", "Compute Instance", "Azure Kubernetes Service", "Serverless Compute"],
+    correct: 1,
+    explanation: "<strong>Compute Instance</strong> is your personal dev VM — it stays on, has JupyterLab built-in, and is designed for interactive work. Compute Clusters are for submitting training jobs."
+  },
+  {
+    category: "Compute Targets",
+    q: "Your training job runs for 4 hours and you want to minimise costs when the cluster is idle. What setting is most important?",
+    answers: ["Set max_instances to 1", "Set min_instances to 0", "Use a Compute Instance instead", "Enable auto-scaling"],
+    correct: 1,
+    explanation: "<strong>min_instances = 0</strong> means the cluster scales back to zero nodes when idle — you only pay when a job is actually running."
+  },
+  {
+    category: "Compute Targets",
+    q: "Which compute target is NOT fully managed by Azure ML? You are responsible for provisioning and managing the nodes.",
+    answers: ["Compute Cluster", "Compute Instance", "Azure Kubernetes Service (AKS)", "Serverless Compute"],
+    correct: 2,
+    explanation: "<strong>AKS</strong> is not fully managed by Azure ML. You create and manage the node pool yourself. This is the classic exam trap — AKS ≠ serverless."
+  },
+  {
+    category: "Compute Targets",
+    q: "You want to deploy a model as a real-time endpoint for a development/test environment with very low traffic. What's the most cost-effective option?",
+    answers: ["Azure Kubernetes Service", "Azure Container Instances (ACI)", "Compute Cluster", "Compute Instance"],
+    correct: 1,
+    explanation: "<strong>ACI</strong> is billed per-second, serverless, and fast to spin up — perfect for dev/test low-traffic inference. AKS is for production high-scale deployments."
+  },
+  {
+    category: "Compute Targets",
+    q: "You need to process millions of rows of insurance claim data interactively in a notebook. Standard Compute Instance isn't enough. What should you use?",
+    answers: ["Scale up to a larger Compute Instance", "Attach a Compute Cluster", "Use Serverless Spark", "Switch to AKS"],
+    correct: 2,
+    explanation: "<strong>Serverless Spark</strong> is designed for large-scale interactive data processing in notebooks. It spins up an Apache Spark session on demand — no cluster management needed."
+  },
+  // ── STORAGE ──
+  {
+    category: "Azure Storage",
+    q: "What is the DEFAULT datastore in every Azure ML workspace?",
+    answers: ["Azure File Share (workspacefilestore)", "Azure Blob Storage (workspaceblobstore)", "Azure Data Lake Storage Gen2", "Azure SQL Database"],
+    correct: 1,
+    explanation: "<strong>workspaceblobstore</strong> (Azure Blob Storage) is the default datastore automatically created with every workspace. It's referenced as azureml://datastores/workspaceblobstore."
+  },
+  {
+    category: "Azure Storage",
+    q: "Your student's Compute Instance needs to mount a shared folder that appears as a drive — just like a network drive at the office. Which storage type supports this?",
+    answers: ["Azure Blob Storage", "Azure Data Lake Storage Gen2", "Azure File Share", "Azure Table Storage"],
+    correct: 2,
+    explanation: "<strong>Azure File Share</strong> supports SMB/NFS protocol — it mounts as a drive. This is why Compute Instance home directories use the workspacefilestore (File Share), not Blob."
+  },
+  {
+    category: "Azure Storage",
+    q: "Which storage type supports hierarchical namespaces AND fine-grained ACL permissions at the folder level — making it ideal for the Feature Store?",
+    answers: ["Azure Blob Storage", "Azure File Share", "Azure Data Lake Storage Gen2 (ADLS)", "Azure Queue Storage"],
+    correct: 2,
+    explanation: "<strong>ADLS Gen2</strong> has a hierarchical namespace with true directories and POSIX-compliant ACLs on folders. This is what Synapse Spark and the Feature Store require."
+  },
+  {
+    category: "Azure Storage",
+    q: "In terms of cost per GB stored, which is typically the CHEAPEST option?",
+    answers: ["Azure File Share (Premium)", "Azure Data Lake Storage Gen2", "Azure Blob Storage (Cool tier)", "Azure SQL Managed Instance"],
+    correct: 2,
+    explanation: "<strong>Blob Storage Cool tier</strong> is the cheapest per GB. File Share Premium is the most expensive. ADLS Gen2 costs similar to Blob but adds namespace overhead."
+  },
+  {
+    category: "Azure Storage",
+    q: "You need to access your training data in Azure ML using the ABFS driver from a Spark job. Which storage backend is required?",
+    answers: ["Azure File Share", "Azure Blob Storage", "Azure Data Lake Storage Gen2", "Any of the above"],
+    correct: 2,
+    explanation: "The <strong>ABFS (Azure Blob File System) driver</strong> is specifically designed for ADLS Gen2 with its hierarchical namespace. Synapse Spark jobs use ABFS to access data efficiently."
+  },
+  // ── AUTOML ──
+  {
+    category: "AutoML",
+    q: "You're setting up an AutoML job using the Azure ML Python SDK v2 to train a classification model. Which class do you use?",
+    answers: ["AutoMLConfig", "AutoMLJob", "classification()", "SweepJob"],
+    correct: 2,
+    explanation: "In <strong>SDK v2</strong>, you use task-specific functions like <code>classification()</code>, <code>regression()</code>, or <code>forecasting()</code>. AutoMLConfig is the old SDK v1 approach."
+  },
+  {
+    category: "AutoML",
+    q: "Which image annotation format does Azure ML AutoML for Computer Vision use by default for object detection?",
+    answers: ["Pascal VOC (XML)", "COCO JSON", "YOLO TXT", "JSONL"],
+    correct: 1,
+    explanation: "<strong>COCO JSON</strong> is the Azure ML default format for CV AutoML. Pascal VOC (XML) is an alternative. JSONL is used for LLM fine-tuning, not CV tasks."
+  },
+  {
+    category: "AutoML",
+    q: "After an AutoML classification run completes, where do you find the best model that was selected?",
+    answers: ["In the Experiments tab", "As the best_run property, via best_child_run.get_output()", "You must manually compare runs", "It is automatically deployed"],
+    correct: 1,
+    explanation: "AutoML returns a <strong>best_child_run</strong> with the top-performing model. You call <code>best_run = returned_job.best_child_run</code> then download or register the model from there."
+  },
+  {
+    category: "AutoML",
+    q: "An AutoML job is running but you notice it keeps trying similar algorithms. What setting limits which algorithms AutoML explores?",
+    answers: ["max_trials", "allowed_training_algorithms", "experiment_timeout_hours", "enable_early_stopping"],
+    correct: 1,
+    explanation: "<strong>allowed_training_algorithms</strong> (or blocked_training_algorithms) controls which ML algorithms AutoML tries. This is useful when you want to restrict to interpretable models for regulated industries."
+  },
+  // ── MLflow ──
+  {
+    category: "MLflow & Experiments",
+    q: "You want to log a custom accuracy metric during model training. Which MLflow function do you use?",
+    answers: ["mlflow.log_param()", "mlflow.log_metric()", "mlflow.log_artifact()", "mlflow.set_tag()"],
+    correct: 1,
+    explanation: "<strong>mlflow.log_metric(name, value)</strong> logs numeric metrics (loss, accuracy, AUC). log_param is for hyperparameters. log_artifact is for files. set_tag is for string metadata."
+  },
+  {
+    category: "MLflow & Experiments",
+    q: "Which component of the Responsible AI Dashboard shows you WHERE in your data your model performs worst — broken down by data cohorts?",
+    answers: ["Explainability (SHAP values)", "Fairness Assessment", "Error Analysis", "Data Analysis"],
+    correct: 2,
+    explanation: "<strong>Error Analysis</strong> uses a decision tree to identify data cohorts where model error is highest. It answers: 'Where does my model fail?' — critical for insurance fraud detection."
+  },
+  {
+    category: "MLflow & Experiments",
+    q: "You saved a model using mlflow.sklearn.log_model(). What file does Azure ML create to describe the model interface — inputs, outputs, and environment?",
+    answers: ["model.pkl", "conda.yaml", "MLmodel", "requirements.txt"],
+    correct: 2,
+    explanation: "The <strong>MLmodel</strong> file is the model signature file — it describes flavors (sklearn, python_function), input/output schema, and environment. It's what Azure ML reads when loading or deploying."
+  },
+  {
+    category: "MLflow & Experiments",
+    q: "In the Responsible AI Dashboard, which component uses SHAP values to show which features most influenced individual predictions?",
+    answers: ["Error Analysis", "Fairness Assessment", "Explainability (Feature Importance)", "Causal Analysis"],
+    correct: 2,
+    explanation: "<strong>Explainability</strong> uses SHAP values to provide both global feature importance (across all predictions) and local explanations (for individual predictions). Key for regulated use cases."
+  },
+  // ── HYPERPARAMETER TUNING ──
+  {
+    category: "Hyperparameter Tuning",
+    q: "In Azure ML SDK v2, which class replaces the old HyperDriveConfig for hyperparameter sweeping?",
+    answers: ["HyperDriveJob", "SweepJob", "TuningJob", "ParameterSearchJob"],
+    correct: 1,
+    explanation: "<strong>SweepJob</strong> is the SDK v2 replacement for HyperDriveConfig. It defines the search space, sampling method, and early termination policy all in one job object."
+  },
+  {
+    category: "Hyperparameter Tuning",
+    q: "You want to try 5, 10, 15, or 20 estimators in your random forest. Which search space type should you use?",
+    answers: ["uniform(5, 20)", "normal(12, 5)", "choice(5, 10, 15, 20)", "randint(5, 20)"],
+    correct: 2,
+    explanation: "<strong>choice()</strong> selects from a discrete list of specific values. uniform() and normal() are for continuous ranges. randint() picks random integers but not from a specific list."
+  },
+  {
+    category: "Hyperparameter Tuning",
+    q: "Which early termination policy stops a trial run early if its performance is in the bottom X% compared to all completed runs?",
+    answers: ["BanditPolicy", "TruncationSelectionPolicy", "MedianStoppingPolicy", "NoTerminationPolicy"],
+    correct: 1,
+    explanation: "<strong>TruncationSelectionPolicy</strong> cancels a percentage of lowest-performing runs. MedianStoppingPolicy stops runs below the median. BanditPolicy stops runs that aren't within a slack factor of the best run."
+  },
+  {
+    category: "Hyperparameter Tuning",
+    q: "You need to try many random combinations of hyperparameters quickly with a limited compute budget. Which sampling method is most appropriate?",
+    answers: ["Grid sampling (GridParameterSampling)", "Bayesian sampling", "Random sampling (RandomParameterSampling)", "Sobol sampling"],
+    correct: 2,
+    explanation: "<strong>Random sampling</strong> is best for large search spaces with limited budget — it covers the space broadly. Grid sampling tries all combinations (expensive). Bayesian sampling is smarter but needs more runs to warm up."
+  },
+  // ── PIPELINES & DEPLOYMENT ──
+  {
+    category: "Pipelines",
+    q: "In an Azure ML Pipeline, you want to reuse the output of a data preprocessing step if the input data hasn't changed. What should you enable?",
+    answers: ["allow_reuse=True on the step", "cache=True on the pipeline", "Set output_mode='upload'", "Use a PipelineData object"],
+    correct: 0,
+    explanation: "<strong>allow_reuse=True</strong> on a pipeline step caches the step output. If inputs and settings haven't changed, Azure ML skips re-running the step — saving time and compute costs."
+  },
+  {
+    category: "Pipelines",
+    q: "Which approach lets you invoke a batch endpoint from the Azure CLI for running batch scoring on a large dataset?",
+    answers: ["az ml endpoint create", "az ml batch-endpoint invoke", "az ml job create --type batch", "az ml model deploy --batch"],
+    correct: 1,
+    explanation: "<strong>az ml batch-endpoint invoke</strong> triggers a batch scoring job on a batch endpoint. You pass the input data path and it returns a job ID you can monitor."
+  },
+  {
+    category: "Deployment",
+    q: "You've deployed a model to an online endpoint with two deployments: 'v1' with 80% traffic and 'v2' with 20% traffic. What is this pattern called?",
+    answers: ["A/B Testing", "Blue-Green Deployment", "Canary Deployment", "Shadow Deployment"],
+    correct: 2,
+    explanation: "<strong>Canary deployment</strong> routes a small percentage of traffic to the new version while most stays on the stable version. Azure ML online endpoints support this with traffic allocation settings."
+  },
+  {
+    category: "Deployment",
+    q: "When authenticating to an Azure ML online endpoint from an external application, what is the MOST SECURE authentication method?",
+    answers: ["API Key authentication", "Managed Identity", "Username and password", "SAS token"],
+    correct: 1,
+    explanation: "<strong>Managed Identity</strong> is best practice — no stored credentials, no expiry management. API keys are simpler but static credentials that can be leaked. SAS tokens are temporary but still stored."
+  },
+  // ── LANGUAGE MODELS (D4) ──
+  {
+    category: "Language Models",
+    q: "In Azure AI Studio, you want to compare performance of GPT-4o vs Phi-3 across multiple benchmarks before choosing one. Where do you do this?",
+    answers: ["Azure ML Experiments tab", "Model Catalog with benchmarks view", "Prompt Flow", "Azure OpenAI Playground"],
+    correct: 1,
+    explanation: "The <strong>Model Catalog</strong> in Azure AI Studio shows benchmark scores (MMLU, HumanEval, etc.) side-by-side, letting you compare models before deploying or fine-tuning."
+  },
+  {
+    category: "Language Models",
+    q: "In a RAG system, users report that retrieved chunks contain too little context and answers are incomplete. What should you adjust?",
+    answers: ["Decrease chunk size", "Increase chunk size", "Increase chunk overlap", "Switch to keyword search"],
+    correct: 1,
+    explanation: "<strong>Increase chunk size</strong> — small chunks mean high retrieval utilization but poor context. Bigger chunks provide more context per retrieved document. (High utilization = chunks too small.)"
+  },
+  {
+    category: "Language Models",
+    q: "You want to fine-tune a language model using your own dataset. What format should your training data be in?",
+    answers: ["COCO JSON", "Pascal VOC XML", "JSONL with prompt/completion pairs", "CSV with text column"],
+    correct: 2,
+    explanation: "<strong>JSONL</strong> (JSON Lines) with {\"prompt\": \"...\", \"completion\": \"...\"} pairs is the standard format for LLM fine-tuning in Azure AI Studio. Each line is one training example."
+  },
+  {
+    category: "Language Models",
+    q: "In Prompt Flow, you have two variants of a 'Summarise' node and want to find which performs best. What is the correct process?",
+    answers: ["Run both variants simultaneously and compare", "Set the best variant as default, then test the next node's variants", "Delete the worse variant immediately", "Use a SweepJob to compare variants"],
+    correct: 1,
+    explanation: "Prompt Flow variants are optimised <strong>sequentially</strong>: test Node 1 variants → set the best as default → then test Node 2 variants. This avoids combinatorial explosion."
+  },
+  {
+    category: "Language Models",
+    q: "Which Azure service acts as the vector store / index for a RAG pipeline in Azure AI Studio?",
+    answers: ["Azure Blob Storage", "Azure AI Search", "Azure Cosmos DB", "Azure Cache for Redis"],
+    correct: 1,
+    explanation: "<strong>Azure AI Search</strong> stores the vector embeddings and enables semantic/hybrid search. It's the backbone of RAG pipelines in Azure AI Studio — you create an index store there."
+  },
+  // ── WORKSPACE & SDK ──
+  {
+    category: "Workspace & SDK",
+    q: "In Azure ML SDK v2, which class is the main entry point for interacting with a workspace?",
+    answers: ["Workspace", "MLClient", "AzureMLClient", "WorkspaceClient"],
+    correct: 1,
+    explanation: "<strong>MLClient</strong> is the main SDK v2 entry point. Workspace class is SDK v1. MLClient is created with: ml_client = MLClient(credential, subscription_id, resource_group, workspace_name)"
+  },
+  {
+    category: "Workspace & SDK",
+    q: "You want to share trained models and environments across multiple Azure ML workspaces in different regions. What feature should you use?",
+    answers: ["Azure DevOps pipelines", "Azure ML Registry", "Shared datastores", "Azure Container Registry"],
+    correct: 1,
+    explanation: "<strong>Azure ML Registry</strong> is a central repository for sharing models, environments, and components across workspaces — including cross-region and cross-team sharing."
+  },
+  {
+    category: "Workspace & SDK",
+    q: "Which authentication method for a datastore uses NO stored secrets and is recommended for production environments?",
+    answers: ["Account Key", "SAS Token", "Managed Identity", "Service Principal with client secret"],
+    correct: 2,
+    explanation: "<strong>Managed Identity</strong> = no secrets stored, automatically managed by Azure AD. Account Key = permanent access (risky). SAS Token = temporary but still a stored credential."
+  },
+  {
+    category: "Workspace & SDK",
+    q: "You want to version-control your Azure ML code alongside your workspace assets. Which feature integrates Git directly into the workspace?",
+    answers: ["Azure Repos connector", "Git integration in Notebooks (clone repo)", "Azure DevOps linking", "GitHub Actions only"],
+    correct: 1,
+    explanation: "Azure ML Studio has built-in <strong>Git integration in the Notebooks section</strong> — you can clone a repo, commit, push, and track branches directly from the notebook environment."
+  },
+  // ── FEATURE STORE ──
+  {
+    category: "Feature Store",
+    q: "What is the primary purpose of the Azure ML Feature Store?",
+    answers: [
+      "To store raw training datasets",
+      "To cache model predictions for fast inference",
+      "To define, share, and reuse features across training and inference consistently",
+      "To store environment configurations"
+    ],
+    correct: 2,
+    explanation: "The <strong>Feature Store</strong> lets teams define features once and reuse them consistently across training AND serving — solving training/serving skew. Features are stored in ADLS Gen2 backed offline stores."
+  },
+  // ── ENVIRONMENTS ──
+  {
+    category: "Environments",
+    q: "You want to ensure all your training jobs use the exact same Python packages without rebuilding the Docker image every time. What should you create?",
+    answers: ["A requirements.txt file", "A custom Environment asset with a conda specification", "A Compute Instance", "A Docker Hub image"],
+    correct: 1,
+    explanation: "An <strong>Azure ML Environment</strong> asset captures the conda/pip specification and is cached as a Docker image. Registered environments are versioned and reused without rebuild if nothing changes."
+  },
+  // ── BONUS SCENARIO-BASED ──
+  {
+    category: "Compute Targets",
+    q: "A data scientist writes this code:\n\njob = command(\n    compute='serverless',\n    instance_type='Standard_DS3_v2'\n)\n\nWhat type of compute will run this job?",
+    answers: ["A pre-existing Compute Cluster", "A new Compute Cluster that auto-scales", "Azure-managed serverless compute provisioned on-demand", "The local compute instance"],
+    correct: 2,
+    explanation: "Setting <strong>compute='serverless'</strong> tells Azure ML to provision VM compute on-demand for this job — you don't manage a cluster. The instance_type just specifies the VM SKU."
+  },
+  {
+    category: "AutoML",
+    q: "Your AutoML NLP job needs to classify support tickets into categories. Which task type should you configure?",
+    answers: ["text-classification", "multi-label-text-classification", "text-ner", "text-classification-multilabel"],
+    correct: 0,
+    explanation: "<strong>text-classification</strong> assigns a single label per document. Use text-classification-multilabel if each ticket can have multiple categories. NER is for named entity recognition (extracting entities, not classifying)."
+  },
+  {
+    category: "Pipelines",
+    q: "Which decorator in Azure ML SDK v2 turns a Python function into a reusable pipeline component?",
+    answers: ["@pipeline_step", "@component", "@ml_component", "@job_component"],
+    correct: 1,
+    explanation: "The <strong>@component</strong> decorator (from azure.ai.ml.dsl) converts a Python function into a reusable, versioned pipeline component. Components can then be shared via the Registry."
+  },
+  {
+    category: "MLflow & Experiments",
+    q: "You trained a model in a notebook and now want to register it in the Azure ML model registry directly from MLflow. Which function do you call?",
+    answers: [
+      "mlflow.register_model(model_uri, name)",
+      "ml_client.models.create_or_update(Model(...))",
+      "mlflow.log_model(model, registered_model_name=name)",
+      "All of the above work"
+    ],
+    correct: 3,
+    explanation: "All three approaches work! <strong>mlflow.register_model()</strong> and passing <strong>registered_model_name</strong> to log_model are MLflow-native. ml_client.models.create_or_update() is the SDK v2 approach."
+  },
+  {
+    category: "Deployment",
+    q: "Your batch scoring job reads 10,000 insurance claim records and scores them overnight. You want to monitor whether it completes successfully. What should you check?",
+    answers: [
+      "The online endpoint metrics dashboard",
+      "The batch job run status and logs in the Jobs tab",
+      "Application Insights real-time metrics",
+      "The datastore access logs"
+    ],
+    correct: 1,
+    explanation: "Batch endpoint invocations create <strong>Jobs</strong> that you monitor in the Jobs tab. Check job status (Running/Completed/Failed) and review driver logs and output for troubleshooting."
+  }
+];
+
+// ══════════════════════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════════════════════
+let state = {
+  mode: 'classic',
+  playerName: 'Player',
+  questions: [],
+  current: 0,
+  score: 0,
+  streak: 0,
+  bestStreak: 0,
+  combo: 1,
+  correct: 0,
+  wrong: 0,
+  missed: [],
+  timer: null,
+  timeLeft: 30,
+  maxTime: 30,
+  answered: false,
+  active: false
+};
+
+const MODE_CONFIG = {
+  quick:     { count: 10, time: 15, base: 100, lightning: false, hints: true },
+  classic:   { count: 25, time: 30, base: 200, lightning: false, hints: true },
+  lightning: { count: 999, time: 20, base: 150, lightning: true, hints: false },
+  exam:      { count: 40, time: 45, base: 100, lightning: false, hints: false }
+};
+
+// ══════════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ══════════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function selectMode(mode) {
+  state.mode = mode;
+  showScreen('name');
+  document.getElementById('player-name-input').focus();
+}
+
+function startGame() {
+  const name = document.getElementById('player-name-input').value.trim() || 'Anon';
+  state.playerName = name;
+  const cfg = MODE_CONFIG[state.mode];
+
+  // Shuffle and pick questions
+  const shuffled = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5);
+  state.questions = shuffled.slice(0, Math.min(cfg.count, shuffled.length));
+
+  state.current = 0;
+  state.score = 0;
+  state.streak = 0;
+  state.bestStreak = 0;
+  state.combo = 1;
+  state.correct = 0;
+  state.wrong = 0;
+  state.missed = [];
+  state.maxTime = cfg.time;
+  state.active = true;
+
+  document.getElementById('player-display').textContent = name;
+  document.getElementById('lightning-banner').classList.toggle('visible', cfg.lightning);
+
+  showScreen('game');
+  loadQuestion();
+}
+
+// ══════════════════════════════════════════════════════════
+// QUESTION LOADING
+// ══════════════════════════════════════════════════════════
+function loadQuestion() {
+  const cfg = MODE_CONFIG[state.mode];
+  const q = state.questions[state.current];
+  const total = state.mode === 'lightning' ? '∞' : state.questions.length;
+
+  state.answered = false;
+
+  // Progress
+  const pct = state.mode === 'lightning' ? 0 : (state.current / state.questions.length * 100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  // Meta
+  document.getElementById('q-category').textContent = q.category;
+  document.getElementById('q-number').textContent = `Question ${state.current + 1} of ${total}`;
+
+  // Question text — detect code blocks
+  let qHtml = q.q;
+  if (qHtml.includes('\n')) {
+    const lines = qHtml.split('\n');
+    const firstLine = lines.shift();
+    qHtml = firstLine + '<div class="code-block">' + lines.join('\n') + '</div>';
+  }
+  document.getElementById('q-text').innerHTML = qHtml;
+
+  // Answers
+  const grid = document.getElementById('answers-grid');
+  grid.innerHTML = '';
+  const keys = ['A', 'B', 'C', 'D'];
+  q.answers.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<span class="answer-key">${keys[i]}</span>${ans}`;
+    btn.onclick = () => selectAnswer(i);
+    grid.appendChild(btn);
+  });
+
+  // Explanation
+  const exp = document.getElementById('explanation-panel');
+  exp.classList.remove('visible');
+  exp.innerHTML = '';
+
+  // Next button
+  document.getElementById('next-btn').style.display = 'none';
+
+  // Update streak flames
+  updateFlames();
+
+  // Timer — lightning mode: time decreases each question
+  let time = cfg.time;
+  if (state.mode === 'lightning') {
+    time = Math.max(8, cfg.time - Math.floor(state.current / 3) * 2);
+  }
+  state.maxTime = time;
+  startTimer(time);
+}
+
+// ══════════════════════════════════════════════════════════
+// ANSWER SELECTION
+// ══════════════════════════════════════════════════════════
+function selectAnswer(idx) {
+  if (state.answered) return;
+  state.answered = true;
+  clearInterval(state.timer);
+
+  const q = state.questions[state.current];
+  const cfg = MODE_CONFIG[state.mode];
+  const btns = document.querySelectorAll('.answer-btn');
+  const timeBonus = Math.floor((state.timeLeft / state.maxTime) * cfg.base * 0.5);
+  const keys = ['A', 'B', 'C', 'D'];
+
+  btns.forEach(b => b.disabled = true);
+
+  if (idx === q.correct) {
+    // CORRECT
+    state.correct++;
+    state.streak++;
+    if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+
+    // Combo multiplier
+    if (state.streak >= 5) state.combo = 3;
+    else if (state.streak >= 3) state.combo = 2;
+    else state.combo = 1;
+
+    const pts = Math.round((cfg.base + timeBonus) * state.combo);
+    state.score += pts;
+
+    btns[idx].classList.add('correct');
+    document.getElementById('score-val').textContent = state.score;
+
+    // Floating points
+    showFloatingPts('+' + pts, idx === q.correct, state.combo > 1 ? ` ×${state.combo}` : '');
+
+    // Combo display
+    const comboEl = document.getElementById('combo-display');
+    comboEl.textContent = `×${state.combo}`;
+    comboEl.classList.toggle('active', state.combo > 1);
+
+    updateFlames();
+    spawnParticles();
+
+  } else {
+    // WRONG
+    state.wrong++;
+    state.missed.push({ q: q.q.split('\n')[0].substring(0, 80) + '…', correct: q.answers[q.correct], category: q.category });
+    state.streak = 0;
+    state.combo = 1;
+    document.getElementById('combo-display').textContent = '×1';
+    document.getElementById('combo-display').classList.remove('active');
+
+    btns[idx].classList.add('wrong');
+    btns[q.correct].classList.add('reveal-correct');
+    updateFlames();
+
+    // Lightning mode: game over on wrong answer
+    if (cfg.lightning) {
+      setTimeout(() => endGame(), 1200);
+      showExplanation(q, cfg.hints);
+      return;
+    }
+  }
+
+  showExplanation(q, cfg.hints);
+
+  // Auto-advance or show button
+  document.getElementById('next-btn').style.display = 'inline-flex';
+}
+
+function showExplanation(q, hintsEnabled) {
+  if (!hintsEnabled) return;
+  const exp = document.getElementById('explanation-panel');
+  exp.innerHTML = '💡 ' + q.explanation;
+  exp.classList.add('visible');
+}
+
+// ══════════════════════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════════════════════
+function startTimer(seconds) {
+  state.timeLeft = seconds;
+  const circle = document.getElementById('timer-circle');
+  const text = document.getElementById('timer-text');
+  const circumference = 163;
+
+  function tick() {
+    text.textContent = state.timeLeft;
+    const offset = circumference - (state.timeLeft / state.maxTime) * circumference;
+    circle.style.strokeDashoffset = offset;
+
+    // Color transitions
+    const pct = state.timeLeft / state.maxTime;
+    if (pct > 0.5) circle.style.stroke = '#0078D4';
+    else if (pct > 0.25) circle.style.stroke = '#FFB900';
+    else circle.style.stroke = '#E74856';
+
+    text.style.color = pct > 0.25 ? 'var(--text)' : 'var(--red)';
+
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timer);
+      if (!state.answered) timeOut();
+      return;
+    }
+    state.timeLeft--;
+  }
+
+  tick();
+  state.timer = setInterval(tick, 1000);
+}
+
+function timeOut() {
+  if (state.answered) return;
+  state.answered = true;
+  state.wrong++;
+  state.streak = 0;
+  state.combo = 1;
+  document.getElementById('combo-display').textContent = '×1';
+
+  const q = state.questions[state.current];
+  state.missed.push({ q: q.q.split('\n')[0].substring(0, 80) + '…', correct: q.answers[q.correct], category: q.category });
+
+  document.querySelectorAll('.answer-btn').forEach(b => b.disabled = true);
+  document.querySelectorAll('.answer-btn')[q.correct].classList.add('reveal-correct');
+  updateFlames();
+
+  showToast('⏰ Time\'s up! +0 points');
+  showExplanation(q, MODE_CONFIG[state.mode].hints);
+  document.getElementById('next-btn').style.display = 'inline-flex';
+
+  if (MODE_CONFIG[state.mode].lightning) {
+    setTimeout(() => endGame(), 1200);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+function nextQuestion() {
+  state.current++;
+  const cfg = MODE_CONFIG[state.mode];
+  const maxQ = state.mode === 'lightning' ? Infinity : state.questions.length;
+
+  if (state.current >= Math.min(cfg.count, state.questions.length)) {
+    endGame();
+  } else {
+    loadQuestion();
+  }
+}
+
+function quitGame() {
+  clearInterval(state.timer);
+  endGame();
+}
+
+// ══════════════════════════════════════════════════════════
+// GAME END
+// ══════════════════════════════════════════════════════════
+function endGame() {
+  clearInterval(state.timer);
+  state.active = false;
+
+  const total = state.correct + state.wrong;
+  const pct = total > 0 ? Math.round((state.correct / total) * 100) : 0;
+
+  document.getElementById('final-score').textContent = state.score.toLocaleString();
+  document.getElementById('stat-correct').textContent = state.correct;
+  document.getElementById('stat-wrong').textContent = state.wrong;
+  document.getElementById('stat-streak').textContent = state.bestStreak;
+
+  // Grade
+  let grade, gradeClass, emoji;
+  if (pct >= 90) { grade = '🏆 Outstanding! You\'re ready for the exam.'; gradeClass = 'grade-A'; emoji = '🏆'; }
+  else if (pct >= 75) { grade = '💪 Solid — review a few gaps and you\'re exam-ready.'; gradeClass = 'grade-B'; emoji = '🎯'; }
+  else if (pct >= 60) { grade = '📚 Good start — hit the study guide for the weak areas.'; gradeClass = 'grade-C'; emoji = '📚'; }
+  else { grade = '🔄 Keep going — practice makes perfect.'; gradeClass = 'grade-D'; emoji = '💻'; }
+
+  document.getElementById('results-emoji').textContent = emoji;
+  const banner = document.getElementById('grade-banner');
+  banner.textContent = `${pct}% correct — ${grade}`;
+  banner.className = 'grade-banner ' + gradeClass;
+
+  // Missed topics
+  const missedSection = document.getElementById('missed-section');
+  const missedList = document.getElementById('missed-list');
+  missedList.innerHTML = '';
+
+  if (state.missed.length > 0) {
+    missedSection.style.display = 'block';
+    state.missed.slice(0, 4).forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'missed-item';
+      div.innerHTML = `<strong>[${m.category}] ${m.q}</strong>Correct answer: ${m.correct}`;
+      missedList.appendChild(div);
+    });
+  } else {
+    missedSection.style.display = 'none';
+  }
+
+  // Save high score
+  saveScore(state.playerName, state.score, state.mode);
+  loadLeaderboard();
+
+  showScreen('results');
+}
+
+function playAgain() {
+  showScreen('name');
+}
+
+// ══════════════════════════════════════════════════════════
+// STREAK FLAMES
+// ══════════════════════════════════════════════════════════
+function updateFlames() {
+  for (let i = 1; i <= 5; i++) {
+    const flame = document.getElementById('flame-' + i);
+    flame.classList.toggle('lit', state.streak >= i);
+  }
+  const streakText = document.getElementById('streak-text');
+  if (state.streak >= 5) streakText.textContent = '🔥 ON FIRE!';
+  else if (state.streak >= 3) streakText.textContent = `${state.streak} in a row!`;
+  else streakText.textContent = state.streak > 0 ? `${state.streak} streak` : '';
+}
+
+// ══════════════════════════════════════════════════════════
+// FLOATING POINTS
+// ══════════════════════════════════════════════════════════
+function showFloatingPts(pts, correct, extra) {
+  const el = document.createElement('div');
+  el.className = 'floating-pts';
+  el.textContent = pts + extra;
+  el.style.color = correct ? 'var(--gold)' : 'var(--red)';
+  el.style.left = (Math.random() * 60 + 20) + '%';
+  el.style.top = '40%';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+// ══════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+// ══════════════════════════════════════════════════════════
+// PARTICLES (correct answer burst)
+// ══════════════════════════════════════════════════════════
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+function spawnParticles() {
+  const colors = ['#0078D4', '#00B294', '#FFB900', '#00A4EF', '#fff'];
+  for (let i = 0; i < 18; i++) {
+    particles.push({
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      vx: (Math.random() - 0.5) * 12,
+      vy: (Math.random() - 0.7) * 12,
+      r: Math.random() * 5 + 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1
+    });
+  }
+}
+
+function animParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.3;
+    p.life -= 0.03;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + Math.floor(p.life * 255).toString(16).padStart(2,'0');
+    ctx.fill();
+  });
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+// ══════════════════════════════════════════════════════════
+// LEADERBOARD (localStorage)
+// ══════════════════════════════════════════════════════════
+function saveScore(name, score, mode) {
+  const key = 'dp100_scores';
+  const scores = JSON.parse(localStorage.getItem(key) || '[]');
+  scores.push({ name, score, mode, date: new Date().toLocaleDateString() });
+  scores.sort((a, b) => b.score - a.score);
+  localStorage.setItem(key, JSON.stringify(scores.slice(0, 10)));
+}
+
+function loadLeaderboard() {
+  const scores = JSON.parse(localStorage.getItem('dp100_scores') || '[]');
+  for (let i = 0; i < 3; i++) {
+    const s = scores[i];
+    document.getElementById(`hs-${i+1}-name`).textContent = s ? `${s.name} (${s.mode})` : '---';
+    document.getElementById(`hs-${i+1}-score`).textContent = s ? s.score.toLocaleString() : '-';
+  }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (!state.active || state.answered) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const nextBtn = document.getElementById('next-btn');
+      if (nextBtn.style.display !== 'none') nextQuestion();
+    }
+    return;
+  }
+  const map = { 'a': 0, 'b': 1, 'c': 2, 'd': 3, '1': 0, '2': 1, '3': 2, '4': 3 };
+  const k = e.key.toLowerCase();
+  if (map[k] !== undefined) selectAnswer(map[k]);
+});
+
+// Init
+loadLeaderboard();
+</script>
+</body>
+</html>
